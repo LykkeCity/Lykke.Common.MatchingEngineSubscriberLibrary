@@ -1,33 +1,39 @@
 package com.lykke.me.subscriber.rabbitmq
 
-import com.lykke.me.subscriber.AbstractMeListener
 import com.lykke.me.subscriber.config.RabbitMqConfig
 import com.lykke.me.subscriber.incoming.events.proto.MeProtoEvent
 import com.lykke.me.subscriber.incoming.events.proto.deserialization.MeProtoEventDeserializer
 import com.lykke.utils.logging.ThrottlingLogger
+import com.lykke.utils.notification.AbstractListener
 import com.lykke.utils.rabbit.Connector
 import com.lykke.utils.rabbit.ConsumerFactory
 import com.lykke.utils.rabbit.RabbitMqSubscriber
 import com.rabbitmq.client.Channel
 import com.rabbitmq.client.ConnectionFactory
 import com.rabbitmq.client.Consumer
-import java.util.concurrent.LinkedBlockingQueue
+import java.util.concurrent.BlockingQueue
 import kotlin.concurrent.thread
 import com.lykke.utils.rabbit.RabbitMqConfig as UtilsRabbitMqConfig
 
-class MeRabbitMqProtoEventListener(private val configs: Set<RabbitMqConfig>) : AbstractMeListener<MeProtoEvent<*>>() {
+class MeRabbitMqProtoEventListener(private val configs: Set<RabbitMqConfig>,
+                                   private val queue: BlockingQueue<RmqMessageWrapper>) : AbstractListener<MeProtoEvent<*>>() {
 
     companion object {
         private val LOGGER = ThrottlingLogger.getLogger(MeRabbitMqProtoEventListener::class.java.name)
     }
 
-    private val queue = LinkedBlockingQueue<RmqMessageWrapper>()
+    private var started = false
     private val deserializerByRoutingKey = HashMap<String, MeProtoEventDeserializer<*>>()
 
+    @Synchronized
     fun start() {
+        if (started) {
+            return
+        }
         initDeserializers()
         startRabbitMqSubscribers()
         startMessagesProcessing()
+        started = true
     }
 
     private fun initDeserializers() {
@@ -82,7 +88,7 @@ class MeRabbitMqProtoEventListener(private val configs: Set<RabbitMqConfig>) : A
     }
 
     private fun startMessagesProcessing() {
-        thread {
+        thread(name = "${MeRabbitMqProtoEventListener::class.java.name}.messageProcessing") {
             while (true) {
                 val messageWrapper = queue.take()
                 try {
