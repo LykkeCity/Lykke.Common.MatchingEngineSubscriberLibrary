@@ -38,8 +38,8 @@ class MeRabbitMqProtoEventListener(private val configs: Set<RabbitMqConfig>,
 
     private fun initDeserializers() {
         deserializerByRoutingKey.putAll(configs.map { it.routingKey }
-            .groupBy { it }
-            .mapValues { MeProtoEventDeserializer.createDeserializer(it.value.single()) })
+                .groupBy { it }
+                .mapValues { MeProtoEventDeserializer.createDeserializer(it.value.single()) })
     }
 
     private fun startRabbitMqSubscribers() {
@@ -50,40 +50,45 @@ class MeRabbitMqProtoEventListener(private val configs: Set<RabbitMqConfig>,
         val tmpFactory = ConnectionFactory()
         tmpFactory.setUri(config.uri)
         val routingKey = config.routingKey
+        val ownConfig = config
         RabbitMqSubscriber(
-            UtilsRabbitMqConfig(
-                tmpFactory.host,
-                tmpFactory.port,
-                tmpFactory.username,
-                tmpFactory.password,
-                config.exchange,
-                config.queue,
-                null
-            ),
-            object : Connector {
-                override fun createChannel(config: UtilsRabbitMqConfig): Channel {
-                    val factory = ConnectionFactory()
-                    factory.host = config.host
-                    factory.port = config.port
-                    factory.username = config.username
-                    factory.password = config.password
-                    factory.requestedHeartbeat = 30
-                    factory.isAutomaticRecoveryEnabled = true
+                UtilsRabbitMqConfig(
+                        tmpFactory.host,
+                        tmpFactory.port,
+                        tmpFactory.username,
+                        tmpFactory.password,
+                        config.exchange,
+                        config.queue,
+                        null
+                ),
+                object : Connector {
+                    override fun createChannel(config: UtilsRabbitMqConfig): Channel {
+                        val factory = ConnectionFactory()
+                        factory.host = config.host
+                        factory.port = config.port
+                        factory.username = config.username
+                        factory.password = config.password
+                        factory.requestedHeartbeat = 30
+                        factory.isAutomaticRecoveryEnabled = true
 
-                    val connection = factory.newConnection()
-                    val channel = connection!!.createChannel()
+                        val connection = factory.newConnection()
+                        val channel = connection!!.createChannel()
 
-                    channel.exchangeDeclarePassive(config.exchange)
-                    channel.queueDeclare(config.queue, false, false, true, null)
-                    channel.queueBind(config.queue, config.exchange, routingKey)
-                    return channel
+                        channel.exchangeDeclarePassive(config.exchange)
+                        channel.queueDeclare(config.queue,
+                                ownConfig.durableQueue ?: false,
+                                ownConfig.exclusiveQueue ?: false,
+                                ownConfig.autoDeleteQueue ?: true,
+                                null)
+                        channel.queueBind(config.queue, config.exchange, routingKey)
+                        return channel
+                    }
+                },
+                object : ConsumerFactory {
+                    override fun newConsumer(channel: Channel): Consumer {
+                        return MeEventConsumer(channel, routingKey, queue)
+                    }
                 }
-            },
-            object : ConsumerFactory {
-                override fun newConsumer(channel: Channel): Consumer {
-                    return MeEventConsumer(channel, routingKey, queue)
-                }
-            }
         ).start()
     }
 
