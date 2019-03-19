@@ -7,6 +7,6 @@ import com.lykke.matching.engine.messages.outgoing.OutgoingMessages as ProtocolE
 class ProtoCashTransferEventDeserializer : MeProtoEventDeserializer<ProtocolEvents.CashTransferEvent> {
     override fun deserialize(byteArray: ByteArray): MeProtoEvent<ProtocolEvents.CashTransferEvent> {
         val message = ProtocolEvents.CashTransferEvent.parseFrom(byteArray)
-        return ProtoCashTransferEvent(message, message.header.messageId)
+        return ProtoCashTransferEvent(message)
     }
 }
