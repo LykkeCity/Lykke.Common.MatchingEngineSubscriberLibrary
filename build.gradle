@@ -1,5 +1,5 @@
 group 'org.bitbucket.lykke'
-version '1.0.3-SNAPSHOT'
+version '1.0.4-SNAPSHOT'
 
 buildscript {
     ext.kotlin_version = '1.2.10'
@@ -23,7 +23,7 @@ repositories {
 dependencies {
     compile "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
     compile 'org.bitbucket.lykke:me-outgoing-contract:1.0.0-SNAPSHOT'
-    compile 'org.bitbucket.lykke:kotlin-utils:0.0.11-SNAPSHOT'
+    compile 'org.bitbucket.lykke:kotlin-utils:0.0.13-SNAPSHOT'
 }
 
 compileKotlin {

@@ -64,10 +64,14 @@ class MeRabbitMqProtoEventListener(private val configs: Set<RabbitMqConfig>,
                 object : Connector {
                     override fun createChannel(config: UtilsRabbitMqConfig): Channel {
                         val factory = ConnectionFactory()
-                        factory.host = config.host
-                        factory.port = config.port
-                        factory.username = config.username
-                        factory.password = config.password
+                        if (config.host != null) {
+                            factory.host = config.host
+                            factory.port = config.port!!
+                            factory.username = config.username
+                            factory.password = config.password
+                        } else {
+                            factory.setUri(config.uri!!)
+                        }
                         factory.requestedHeartbeat = 30
                         factory.isAutomaticRecoveryEnabled = true
 
