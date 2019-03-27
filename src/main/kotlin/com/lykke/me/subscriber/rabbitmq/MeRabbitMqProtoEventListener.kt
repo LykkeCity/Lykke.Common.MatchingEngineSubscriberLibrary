@@ -38,6 +38,7 @@ class MeRabbitMqProtoEventListener(private val configs: Set<RabbitMqConfig>,
 
     private fun initDeserializers() {
         deserializerByRoutingKey.putAll(configs.map { it.routingKey }
+                .toSet()
                 .groupBy { it }
                 .mapValues { MeProtoEventDeserializer.createDeserializer(it.value.single()) })
     }
